@@ -202,21 +202,15 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
             : "lg:col-span-12 max-w-4xl mx-auto space-y-6 no-print"
         }
       >
-        {/* Breadcrumb & Header matching screenshot */}
+        {/* Header */}
         <div>
-          <div className="flex items-center gap-2 text-xs text-slate-400 font-medium mb-1">
-            <span>Invoice</span>
-            <span>&gt;</span>
-            <span className="text-slate-700 dark:text-slate-200">Create Invoice</span>
-          </div>
-
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Create Invoice
+              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                Créer une facture
               </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Créez une facture, personnalisez votre entreprise cliente et téléchargez le PDF en un clic.
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mt-1">
+                Personnalisez votre entreprise cliente et téléchargez le PDF en un clic.
               </p>
             </div>
 
@@ -424,27 +418,29 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
             {/* Date Issue with Wheel Date Picker trigger */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  Date Issue *
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Date d'émission (Date Issue) *
                 </label>
                 <button
                   type="button"
                   onClick={() => setIsIssueDatePickerOpen(true)}
-                  className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 dark:text-blue-400"
+                  className="text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 dark:text-blue-400"
                 >
-                  <Sparkles className="h-3 w-3" />
+                  <Sparkles className="h-3.5 w-3.5" />
                   <span>Rouleau 3D</span>
                 </button>
               </div>
               <div
                 onClick={() => setIsIssueDatePickerOpen(true)}
-                className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 font-medium transition-colors cursor-pointer hover:border-blue-500 hover:ring-2 hover:ring-blue-100 flex items-center justify-between dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+                className="flex h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 font-bold transition-all cursor-pointer hover:border-blue-500 hover:ring-2 hover:ring-blue-100 flex items-center justify-between shadow-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
                 <div className="flex items-center gap-2.5">
                   <Calendar className="h-4 w-4 text-blue-600" />
-                  <span>{formatDate(issueDate)}</span>
+                  <span className="font-extrabold text-slate-900 dark:text-white">
+                    {formatDate(issueDate)}
+                  </span>
                 </div>
-                <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono dark:bg-slate-800 dark:text-slate-400">
+                <span className="text-[11px] bg-slate-100 text-slate-800 px-2.5 py-1 rounded-md font-mono font-bold dark:bg-slate-800 dark:text-slate-200">
                   {issueDate}
                 </span>
               </div>
@@ -453,27 +449,29 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
             {/* Due Date with Wheel Date Picker trigger */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  Due Date *
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Date d'échéance (Due Date) *
                 </label>
                 <button
                   type="button"
                   onClick={() => setIsDueDatePickerOpen(true)}
-                  className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 dark:text-blue-400"
+                  className="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 dark:text-emerald-400"
                 >
-                  <Sparkles className="h-3 w-3" />
+                  <Sparkles className="h-3.5 w-3.5" />
                   <span>Rouleau 3D</span>
                 </button>
               </div>
               <div
                 onClick={() => setIsDueDatePickerOpen(true)}
-                className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 font-medium transition-colors cursor-pointer hover:border-emerald-500 hover:ring-2 hover:ring-emerald-100 flex items-center justify-between dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+                className="flex h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 font-bold transition-all cursor-pointer hover:border-emerald-500 hover:ring-2 hover:ring-emerald-100 flex items-center justify-between shadow-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               >
                 <div className="flex items-center gap-2.5">
                   <Calendar className="h-4 w-4 text-emerald-600" />
-                  <span>{formatDate(dueDate)}</span>
+                  <span className="font-extrabold text-slate-900 dark:text-white">
+                    {formatDate(dueDate)}
+                  </span>
                 </div>
-                <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono dark:bg-slate-800 dark:text-slate-400">
+                <span className="text-[11px] bg-slate-100 text-slate-800 px-2.5 py-1 rounded-md font-mono font-bold dark:bg-slate-800 dark:text-slate-200">
                   {dueDate}
                 </span>
               </div>
