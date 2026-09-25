@@ -24,7 +24,8 @@ import { Switch } from "@/components/ui/switch";
 import { Client, Organization } from "@/lib/types";
 import { calculateInvoice } from "@/lib/invoice/calc";
 import { InvoicePdfPreview } from "./invoice-pdf-preview";
-import { formatFBu } from "@/lib/format";
+import { formatCurrency, formatFBu } from "@/lib/format";
+import { SUPPORTED_CURRENCIES, getCurrency } from "@/lib/currency";
 import { toast } from "sonner";
 
 interface InvoiceFormProps {
@@ -58,6 +59,9 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
   );
   const [taxRate, setTaxRate] = React.useState<number>(
     initialData?.tax_rate ?? organization.default_tax_rate ?? 15
+  );
+  const [currency, setCurrency] = React.useState<string>(
+    initialData?.currency || organization.currency || "BIF"
   );
   const [notes, setNotes] = React.useState(
     initialData?.notes ||
@@ -289,13 +293,20 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
               Invoice Items/Service
             </h2>
 
-            {/* Currency selector matching screenshot */}
+            {/* Currency selector with 4 currencies matching user request */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400 font-medium">Currency *</span>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
-                <span>🇧🇮</span>
-                <span>FBu (Franc burundais)</span>
-              </div>
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="h-9 px-3 bg-white rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 cursor-pointer shadow-xs"
+              >
+                {SUPPORTED_CURRENCIES.map((cur) => (
+                  <option key={cur.code} value={cur.code}>
+                    {cur.flag} {cur.name} ({cur.symbol})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -469,6 +480,7 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
             taxRate={taxRate}
             taxAmount={calculation.taxAmount}
             total={calculation.total}
+            currency={currency}
             notes={notes}
             onDownloadPdf={() => toast.success("Génération du document PDF en cours...")}
           />

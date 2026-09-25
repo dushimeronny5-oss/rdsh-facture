@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { formatFBu, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate } from "@/lib/format";
 import { Organization } from "@/lib/types";
-import { Mail, Download, Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface InvoicePreviewProps {
@@ -24,6 +24,7 @@ interface InvoicePreviewProps {
   taxRate: number;
   taxAmount: number;
   total: number;
+  currency?: string;
   notes?: string;
   paymentMethod?: string;
   onDownloadPdf?: () => void;
@@ -42,6 +43,7 @@ export function InvoicePdfPreview({
   taxRate,
   taxAmount,
   total,
+  currency = organization.currency || "BIF",
   notes,
   paymentMethod = "Lumicash / Virement",
   onDownloadPdf,
@@ -182,7 +184,10 @@ export function InvoicePdfPreview({
                     {taxRate}%
                   </td>
                   <td className="py-2.5 text-right font-bold text-slate-900">
-                    {formatFBu(item.lineTotal ?? item.quantity * item.unitPrice)}
+                    {formatCurrency(
+                      item.lineTotal ?? item.quantity * item.unitPrice,
+                      currency
+                    )}
                   </td>
                 </tr>
               ))}
@@ -194,21 +199,27 @@ export function InvoicePdfPreview({
         <div className="pt-6 border-t border-slate-100 space-y-2 text-xs">
           <div className="flex justify-between text-slate-500">
             <span>Subtotal</span>
-            <span className="font-medium text-slate-800">{formatFBu(subtotal)}</span>
+            <span className="font-medium text-slate-800">
+              {formatCurrency(subtotal, currency)}
+            </span>
           </div>
           <div className="flex justify-between text-slate-500">
             <span>TVA ({taxRate}%)</span>
-            <span className="font-medium text-slate-800">{formatFBu(taxAmount)}</span>
+            <span className="font-medium text-slate-800">
+              {formatCurrency(taxAmount, currency)}
+            </span>
           </div>
           <div className="flex justify-between text-sm pt-2 border-t border-slate-200 font-bold text-slate-950">
             <span>Grand Total</span>
-            <span className="text-base text-blue-600">{formatFBu(total)}</span>
+            <span className="text-base text-blue-600">
+              {formatCurrency(total, currency)}
+            </span>
           </div>
         </div>
 
         {/* Note Box */}
         <div className="mt-6 p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-500 leading-relaxed">
-          {notes || "Note: Late payments will incur a 10% annual fee, calculated daily according to commercial law."}
+          {notes || "Note: Les paiements en retard sont soumis aux pénalités légales en vigueur."}
         </div>
 
         {/* Payment Method & Signature Row */}
