@@ -3,7 +3,7 @@
 import * as React from "react";
 import { format, addDays, parseISO, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Check, X, Calendar as CalendarIcon, ChevronUp, ChevronDown, Sparkles } from "lucide-react";
+import { Check, X, Calendar as CalendarIcon, ChevronUp, ChevronDown, Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "./button";
 
 interface WheelDatePickerProps {
@@ -16,22 +16,54 @@ interface WheelDatePickerProps {
   fieldLabel?: string;
 }
 
-// French day abbreviations matching screenshot exactly: Dim, Lun, Mar, Mer, Jeu, Ven, Sa
+// French day abbreviations matching screenshot: Dim, Lun, Mar, Mer, Jeu, Ven, Sa
 const SHORT_DAYS_FR = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sa"];
 const SHORT_MONTHS_FR = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Juin", 
   "Juil", "Août", "Sep", "Oct", "Nov", "Déc"
 ];
 
-function formatWheelDay(d: Date): { text: string; dateStr: string; dateObj: Date } {
-  const dayName = SHORT_DAYS_FR[d.getDay()];
-  const dayNum = d.getDate();
-  const monthName = SHORT_MONTHS_FR[d.getMonth()];
-  return {
-    text: `${dayName} ${dayNum} ${monthName}`,
-    dateStr: format(d, "yyyy-MM-dd"),
-    dateObj: d,
-  };
+const YEARS = [2025, 2026, 2027, 2028];
+
+interface WheelDayItem {
+  text: string;
+  dayText: string;
+  monthText: string;
+  year: number;
+  dateStr: string;
+  dateObj: Date;
+  isFirstDayOfMonth: boolean;
+  isFirstDayOfYear: boolean;
+}
+
+// Full continuous chronological calendar from 2025-01-01 through 2028-12-31
+function buildFullCalendarDays(): WheelDayItem[] {
+  const list: WheelDayItem[] = [];
+  const start = new Date(2025, 0, 1);
+  const end = new Date(2028, 11, 31);
+  const cur = new Date(start);
+
+  while (cur <= end) {
+    const dayName = SHORT_DAYS_FR[cur.getDay()];
+    const dayNum = cur.getDate();
+    const monthName = SHORT_MONTHS_FR[cur.getMonth()];
+    const year = cur.getFullYear();
+
+    list.push({
+      text: `${dayName} ${dayNum} ${monthName} ${year}`,
+      dayText: `${dayName} ${dayNum}`,
+      monthText: monthName,
+      year,
+      dateStr: format(cur, "yyyy-MM-dd"),
+      dateObj: new Date(cur),
+      isFirstDayOfMonth: dayNum === 1,
+      isFirstDayOfYear: dayNum === 1 && cur.getMonth() === 0,
+    });
+
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  return list;
 }
 
 export function WheelDatePicker({
@@ -39,10 +71,13 @@ export function WheelDatePicker({
   onChange,
   isOpen,
   onClose,
-  title = "Réservez en ligne",
+  title = "Sélection de la date",
   subtitle = "Disponibilités :",
   fieldLabel = "Date de facturation",
 }: WheelDatePickerProps) {
+  // Stable full calendar days list spanning 2025 to 2028
+  const daysList = React.useMemo(() => buildFullCalendarDays(), []);
+
   // Parse initial date
   const initialDate = React.useMemo(() => {
     try {
@@ -57,16 +92,9 @@ export function WheelDatePicker({
   const [selectedHour, setSelectedHour] = React.useState<number>(10);
   const [selectedMinute, setSelectedMinute] = React.useState<number>(0);
 
-  // Generate 120 days window centered around the selected date (±60 days)
-  const daysList = React.useMemo(() => {
-    const list: Array<{ text: string; dateStr: string; dateObj: Date }> = [];
-    const base = new Date(selectedDate);
-    for (let i = -60; i <= 60; i++) {
-      const d = addDays(base, i);
-      list.push(formatWheelDay(d));
-    }
-    return list;
-  }, [selectedDate.getFullYear(), selectedDate.getMonth()]);
+  // Active year dynamically calculated from current selectedDate
+  const currentYear = selectedDate.getFullYear();
+  const currentMonthIdx = selectedDate.getMonth();
 
   // Hours: 0 to 23
   const hoursList = React.useMemo(() => {
@@ -97,24 +125,34 @@ export function WheelDatePicker({
   const ITEM_HEIGHT = 44; // px per row
 
   // Scroll to active index
-  const scrollToActive = React.useCallback(() => {
-    const activeDateStr = format(selectedDate, "yyyy-MM-dd");
-    const dayIdx = daysList.findIndex((d) => d.dateStr === activeDateStr);
-    if (dayIdx >= 0 && daysColRef.current) {
-      daysColRef.current.scrollTop = dayIdx * ITEM_HEIGHT;
-    }
-    if (hoursColRef.current) {
-      hoursColRef.current.scrollTop = selectedHour * ITEM_HEIGHT;
-    }
-    if (minutesColRef.current) {
-      minutesColRef.current.scrollTop = selectedMinute * ITEM_HEIGHT;
-    }
-  }, [daysList, selectedDate, selectedHour, selectedMinute]);
+  const scrollToActive = React.useCallback(
+    (smooth = false) => {
+      const activeDateStr = format(selectedDate, "yyyy-MM-dd");
+      const dayIdx = daysList.findIndex((d) => d.dateStr === activeDateStr);
+      if (dayIdx >= 0 && daysColRef.current) {
+        if (smooth) {
+          daysColRef.current.scrollTo({
+            top: dayIdx * ITEM_HEIGHT,
+            behavior: "smooth",
+          });
+        } else {
+          daysColRef.current.scrollTop = dayIdx * ITEM_HEIGHT;
+        }
+      }
+      if (hoursColRef.current) {
+        hoursColRef.current.scrollTop = selectedHour * ITEM_HEIGHT;
+      }
+      if (minutesColRef.current) {
+        minutesColRef.current.scrollTop = selectedMinute * ITEM_HEIGHT;
+      }
+    },
+    [daysList, selectedDate, selectedHour, selectedMinute]
+  );
 
   // When opened, scroll into position
   React.useEffect(() => {
     if (isOpen) {
-      const t = setTimeout(scrollToActive, 80);
+      const t = setTimeout(() => scrollToActive(false), 60);
       return () => clearTimeout(t);
     }
   }, [isOpen, scrollToActive]);
@@ -129,25 +167,69 @@ export function WheelDatePicker({
 
   const setPreset = (offsetDays: number) => {
     const target = addDays(new Date(), offsetDays);
-    setSelectedDate(target);
+    const targetStr = format(target, "yyyy-MM-dd");
+    const idx = daysList.findIndex((d) => d.dateStr === targetStr);
+    if (idx >= 0 && daysColRef.current) {
+      setSelectedDate(target);
+      daysColRef.current.scrollTo({ top: idx * ITEM_HEIGHT, behavior: "smooth" });
+    }
   };
 
   const setEndOfMonth = () => {
-    const now = new Date();
+    const now = selectedDate;
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    setSelectedDate(lastDay);
+    const targetStr = format(lastDay, "yyyy-MM-dd");
+    const idx = daysList.findIndex((d) => d.dateStr === targetStr);
+    if (idx >= 0 && daysColRef.current) {
+      setSelectedDate(lastDay);
+      daysColRef.current.scrollTo({ top: idx * ITEM_HEIGHT, behavior: "smooth" });
+    }
+  };
+
+  // Jump to specific year smoothly
+  const handleJumpToYear = (year: number) => {
+    const d = new Date(selectedDate);
+    d.setFullYear(year);
+    const targetStr = format(d, "yyyy-MM-dd");
+    let idx = daysList.findIndex((item) => item.dateStr === targetStr);
+    if (idx === -1) {
+      // Fallback to Jan 1st of that year
+      const fallback = new Date(year, 0, 1);
+      idx = daysList.findIndex((item) => item.dateStr === format(fallback, "yyyy-MM-dd"));
+    }
+    if (idx >= 0 && daysColRef.current) {
+      setSelectedDate(daysList[idx].dateObj);
+      daysColRef.current.scrollTo({
+        top: idx * ITEM_HEIGHT,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  // Jump to specific month smoothly
+  const handleJumpToMonth = (monthIdx: number) => {
+    const d = new Date(currentYear, monthIdx, 1);
+    const targetStr = format(d, "yyyy-MM-dd");
+    const idx = daysList.findIndex((item) => item.dateStr === targetStr);
+    if (idx >= 0 && daysColRef.current) {
+      setSelectedDate(daysList[idx].dateObj);
+      daysColRef.current.scrollTo({
+        top: idx * ITEM_HEIGHT,
+        behavior: "smooth",
+      });
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-sm animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-sm mx-auto"
+        className="relative w-full max-w-md mx-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Clean, bold Card Frame without the fake 12:30 / SiteExact / RDSH status bar */}
+        {/* Clean, bold Card Frame with complete 2026/2027 continuous calendar */}
         <div className="bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 text-slate-900 flex flex-col items-center dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100">
           
-          {/* Main Title matching screenshot - in bold */}
+          {/* Main Title - in bold */}
           <div className="text-center w-full">
             <h3 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               {title}
@@ -161,17 +243,64 @@ export function WheelDatePicker({
               {subtitle}
             </p>
             
-            {/* Highlight of currently active date - prominent and bold */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-100 text-blue-900 dark:bg-blue-950/80 dark:text-blue-200 rounded-full text-xs font-bold shadow-xs">
+            {/* Highlight of currently active date - prominent, bold with active year */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-100 text-blue-900 dark:bg-blue-950/80 dark:text-blue-200 rounded-full text-xs font-extrabold shadow-xs">
               <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="capitalize">
+              <span className="capitalize text-sm">
                 {format(selectedDate, "EEEE d MMMM yyyy", { locale: fr })}
               </span>
             </div>
           </div>
 
+          {/* Dynamic Year Switcher matching user request (2025, 2026, 2027, 2028) */}
+          <div className="w-full mt-4 flex items-center justify-between gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700">
+            <span className="text-[10px] font-extrabold text-slate-500 uppercase px-2 tracking-wider">
+              Année :
+            </span>
+            <div className="flex items-center gap-1">
+              {YEARS.map((yr) => {
+                const isActive = currentYear === yr;
+                return (
+                  <button
+                    key={yr}
+                    type="button"
+                    onClick={() => handleJumpToYear(yr)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                      isActive
+                        ? "bg-blue-600 text-white shadow-sm shadow-blue-500/30 scale-105"
+                        : "text-slate-600 hover:text-slate-950 hover:bg-slate-200 dark:text-slate-400 dark:hover:text-white"
+                    }`}
+                  >
+                    {yr}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quick Month Bar for fast navigation through all 12 months */}
+          <div className="w-full mt-2 flex items-center gap-1 overflow-x-auto no-scrollbar py-1 px-0.5">
+            {SHORT_MONTHS_FR.map((m, idx) => {
+              const isSelectedMonth = currentMonthIdx === idx;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => handleJumpToMonth(idx)}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold shrink-0 transition-colors ${
+                    isSelectedMonth
+                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 font-black"
+                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  {m}
+                </button>
+              );
+            })}
+          </div>
+
           {/* 3-Column Roller / Drum Calendar matching screenshot */}
-          <div className="relative w-full h-[220px] my-5 overflow-hidden select-none bg-slate-50 rounded-2xl border border-slate-200/80 dark:bg-slate-950/50 dark:border-slate-800">
+          <div className="relative w-full h-[220px] my-3 overflow-hidden select-none bg-slate-50 rounded-2xl border border-slate-200/80 dark:bg-slate-950/50 dark:border-slate-800">
             
             {/* Center Selection Frame: 2 subtle horizontal separator lines */}
             <div 
@@ -185,10 +314,10 @@ export function WheelDatePicker({
             {/* The 3 Columns Grid */}
             <div className="grid grid-cols-12 h-full relative z-10">
               
-              {/* Column 1: Dates (French Day + Num + Month, ex: Mer 9 Sep) */}
+              {/* Column 1: Dates (Day, Month, and Year badge) */}
               <div 
                 ref={daysColRef}
-                className="col-span-6 h-full overflow-y-auto no-scrollbar scroll-smooth py-[88px]"
+                className="col-span-7 h-full overflow-y-auto no-scrollbar scroll-smooth py-[88px]"
                 style={{ scrollSnapType: "y mandatory" }}
                 onScroll={(e) => {
                   const target = e.currentTarget;
@@ -201,9 +330,10 @@ export function WheelDatePicker({
               >
                 {daysList.map((item, idx) => {
                   const isSelected = item.dateStr === format(selectedDate, "yyyy-MM-dd");
+                  const isThisYear = item.year === currentYear;
                   return (
                     <div
-                      key={item.dateStr + idx}
+                      key={item.dateStr}
                       onClick={() => {
                         setSelectedDate(item.dateObj);
                         if (daysColRef.current) {
@@ -211,13 +341,30 @@ export function WheelDatePicker({
                         }
                       }}
                       style={{ height: `${ITEM_HEIGHT}px`, scrollSnapAlign: "center" }}
-                      className={`flex items-center justify-end pr-4 cursor-pointer transition-all duration-150 ${
+                      className={`flex items-center justify-end pr-3 cursor-pointer transition-all duration-150 gap-1.5 ${
                         isSelected
                           ? "font-black text-slate-950 dark:text-white text-base scale-105 tracking-wide"
-                          : "text-slate-600 dark:text-slate-400 font-semibold text-sm hover:text-slate-900"
+                          : isThisYear
+                          ? "text-slate-700 dark:text-slate-300 font-bold text-sm hover:text-slate-950"
+                          : "text-slate-400 dark:text-slate-500 font-semibold text-xs hover:text-slate-700"
                       }`}
                     >
-                      <span>{item.text}</span>
+                      <span>
+                        {item.dayText} {item.monthText}
+                      </span>
+                      <span
+                        className={`text-[10px] font-black px-1.5 py-0.5 rounded transition-colors ${
+                          isSelected
+                            ? "bg-blue-600 text-white"
+                            : item.year === 2027
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                            : item.year === 2026
+                            ? "bg-slate-200/90 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        {item.year}
+                      </span>
                     </div>
                   );
                 })}
@@ -226,7 +373,7 @@ export function WheelDatePicker({
               {/* Column 2: Hours (ex: 7, 8, 9, 10, 11...) */}
               <div 
                 ref={hoursColRef}
-                className="col-span-3 h-full overflow-y-auto no-scrollbar scroll-smooth py-[88px]"
+                className="col-span-2 h-full overflow-y-auto no-scrollbar scroll-smooth py-[88px]"
                 style={{ scrollSnapType: "y mandatory" }}
                 onScroll={(e) => {
                   const target = e.currentTarget;
@@ -285,7 +432,7 @@ export function WheelDatePicker({
                         }
                       }}
                       style={{ height: `${ITEM_HEIGHT}px`, scrollSnapAlign: "center" }}
-                      className={`flex items-center justify-start pl-4 cursor-pointer transition-all duration-150 ${
+                      className={`flex items-center justify-start pl-3 cursor-pointer transition-all duration-150 ${
                         isSelected
                           ? "font-black text-slate-950 dark:text-white text-base scale-105"
                           : "text-slate-600 dark:text-slate-400 font-semibold text-sm hover:text-slate-900"
