@@ -98,10 +98,29 @@
     background: white !important;
     color: black !important;
   }
-  .no-print {
+  .no-print,
+  aside,
+  header,
+  nav,
+  button,
+  .toast {
     display: none !important;
   }
   .print-only {
     display: block !important;
+  }
+  #printable-invoice {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
   }
 }

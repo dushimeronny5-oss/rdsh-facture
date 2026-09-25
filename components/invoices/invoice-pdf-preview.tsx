@@ -12,6 +12,7 @@ interface InvoicePreviewProps {
   clientName: string;
   clientEmail?: string;
   clientAddress?: string;
+  clientNif?: string;
   issueDate: string;
   dueDate: string;
   items: Array<{
@@ -36,6 +37,7 @@ export function InvoicePdfPreview({
   clientName,
   clientEmail,
   clientAddress,
+  clientNif,
   issueDate,
   dueDate,
   items,
@@ -49,13 +51,27 @@ export function InvoicePdfPreview({
   onDownloadPdf,
 }: InvoicePreviewProps) {
   const handlePrint = () => {
+    const prevTitle = document.title;
+    const cleanClient = (clientName || "Client").replace(/[^a-zA-Z0-9_-]/g, "_");
+    document.title = `${invoiceNumber || "Facture"}_${cleanClient}.pdf`;
     window.print();
+    setTimeout(() => {
+      document.title = prevTitle;
+    }, 1500);
+  };
+
+  const handleDownload = () => {
+    if (onDownloadPdf) {
+      onDownloadPdf();
+    } else {
+      handlePrint();
+    }
   };
 
   return (
     <div className="flex flex-col h-full">
       {/* Top Preview Bar matching screenshot */}
-      <div className="flex items-center justify-between pb-4">
+      <div className="flex items-center justify-between pb-4 no-print">
         <h2 className="text-xl font-bold text-slate-900 tracking-tight dark:text-white">
           Preview
         </h2>
@@ -63,26 +79,29 @@ export function InvoicePdfPreview({
           <Button
             variant="outline"
             size="sm"
-            className="h-8 gap-1.5 text-xs rounded-lg"
+            className="h-8 gap-1.5 text-xs rounded-lg text-slate-700 hover:text-slate-900"
             onClick={handlePrint}
           >
             <Printer className="h-3.5 w-3.5" />
             Imprimer
           </Button>
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
-            className="h-8 gap-1.5 text-xs rounded-lg"
-            onClick={onDownloadPdf}
+            className="h-8 gap-1.5 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
+            onClick={handleDownload}
           >
             <Download className="h-3.5 w-3.5" />
-            PDF
+            Télécharger PDF
           </Button>
         </div>
       </div>
 
       {/* Realistic Paper Invoice Card matching screenshot */}
-      <div className="relative bg-white rounded-2xl p-8 border border-slate-200/90 shadow-invoice text-slate-900 overflow-hidden dark:bg-white dark:text-slate-900">
+      <div 
+        id="printable-invoice"
+        className="relative bg-white rounded-2xl p-8 border border-slate-200/90 shadow-invoice text-slate-900 overflow-hidden dark:bg-white dark:text-slate-900"
+      >
         {/* Header Row */}
         <div className="flex justify-between items-start border-b border-slate-100 pb-6">
           <div>
@@ -138,10 +157,17 @@ export function InvoicePdfPreview({
               Billed to:
             </p>
             <p className="font-bold text-slate-900 text-sm mt-0.5">
-              {clientName || "Sélectionnez un client"}
+              {clientName || "Entreprise cliente"}
             </p>
-            <p className="text-slate-500 mt-0.5">{clientEmail || "email@client.bi"}</p>
-            <p className="text-slate-500">{clientAddress || "Bujumbura, Burundi"}</p>
+            {clientEmail && (
+              <p className="text-slate-500 mt-0.5">{clientEmail}</p>
+            )}
+            {clientAddress && (
+              <p className="text-slate-500">{clientAddress}</p>
+            )}
+            {clientNif && (
+              <p className="text-slate-500">NIF : {clientNif}</p>
+            )}
           </div>
         </div>
 
