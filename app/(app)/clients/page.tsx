@@ -5,6 +5,8 @@ import { getClients } from "@/lib/data/clients";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
+import { AddClientDialog } from "@/components/clients/add-client-dialog";
+
 export const revalidate = 0;
 
 export default async function ClientsPage() {
@@ -19,14 +21,11 @@ export default async function ClientsPage() {
             Clients
           </h1>
           <p className="text-sm text-slate-500 mt-0.5 dark:text-slate-400">
-            Répertoire des entreprises et particuliers facturés.
+            Répertoire des entreprises et particuliers facturés ({clients.length} clients).
           </p>
         </div>
 
-        <Button className="h-11 px-5 rounded-xl font-semibold gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20">
-          <Plus className="h-4 w-4" />
-          <span>Ajouter un client</span>
-        </Button>
+        <AddClientDialog />
       </div>
 
       {/* Clients Grid */}

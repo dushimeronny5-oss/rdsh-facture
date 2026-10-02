@@ -20,14 +20,34 @@ interface DashboardInvoicesTableProps {
 }
 
 export function DashboardInvoicesTable({ invoices }: DashboardInvoicesTableProps) {
+  const [invoiceList, setInvoiceList] = React.useState<Invoice[]>(invoices);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [itemsPerPage, setItemsPerPage] = React.useState<number>(10);
 
+  // Sync when prop updates
+  React.useEffect(() => {
+    setInvoiceList(invoices);
+  }, [invoices]);
+
+  const handleStatusChange = (invoiceId: string, newStatus: any) => {
+    setInvoiceList((prev) =>
+      prev.map((inv) =>
+        inv.id === invoiceId || inv.number === invoiceId
+          ? {
+              ...inv,
+              status: newStatus === "overdue" ? "sent" : newStatus,
+              display_status: newStatus,
+            }
+          : inv
+      )
+    );
+  };
+
   // Filter invoices based on status and search query
   const filteredInvoices = React.useMemo(() => {
-    return invoices.filter((inv) => {
+    return invoiceList.filter((inv) => {
       const currentStatus = inv.display_status || inv.status;
 
       if (statusFilter !== "all" && currentStatus !== statusFilter) {
@@ -44,7 +64,7 @@ export function DashboardInvoicesTable({ invoices }: DashboardInvoicesTableProps
 
       return true;
     });
-  }, [invoices, statusFilter, searchQuery]);
+  }, [invoiceList, statusFilter, searchQuery]);
 
   // Total pages based on itemsPerPage (default 10 items/page -> exactly 3 pages for 30 invoices)
   const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / itemsPerPage));
@@ -66,26 +86,26 @@ export function DashboardInvoicesTable({ invoices }: DashboardInvoicesTableProps
   const endIndex = Math.min(currentPage * itemsPerPage, filteredInvoices.length);
 
   const filterTabs = [
-    { label: "Toutes", value: "all", count: invoices.length },
+    { label: "Toutes", value: "all", count: invoiceList.length },
     {
       label: "Payées",
       value: "paid",
-      count: invoices.filter((i) => i.status === "paid").length,
+      count: invoiceList.filter((i) => i.status === "paid").length,
     },
     {
       label: "En attente",
       value: "sent",
-      count: invoices.filter((i) => i.display_status === "sent").length,
+      count: invoiceList.filter((i) => i.display_status === "sent").length,
     },
     {
       label: "En retard",
       value: "overdue",
-      count: invoices.filter((i) => i.display_status === "overdue").length,
+      count: invoiceList.filter((i) => i.display_status === "overdue").length,
     },
     {
       label: "Brouillons",
       value: "draft",
-      count: invoices.filter((i) => i.status === "draft").length,
+      count: invoiceList.filter((i) => i.status === "draft").length,
     },
   ];
 
@@ -103,7 +123,7 @@ export function DashboardInvoicesTable({ invoices }: DashboardInvoicesTableProps
               </span>
             </div>
             <CardDescription className="text-xs text-slate-500 mt-0.5">
-              Consultez les 30 factures enregistrées, réparties sur 3 pages avec filtres et recherche instantanée
+              Consultez les {invoices.length} factures enregistrées, réparties sur {totalPages} {totalPages > 1 ? "pages" : "page"} avec filtres et recherche instantanée
             </CardDescription>
           </div>
 
@@ -176,7 +196,7 @@ export function DashboardInvoicesTable({ invoices }: DashboardInvoicesTableProps
                 <th className="py-3 px-4">Émission</th>
                 <th className="py-3 px-4">Échéance</th>
                 <th className="py-3 px-4">Statut</th>
-                <th className="py-3 px-4 text-right">Montant TTC</th>
+                <th className="py-3 px-4 text-right">Montant</th>
                 <th className="py-3 px-4 text-right pr-6">Action</th>
               </tr>
             </thead>
@@ -211,7 +231,15 @@ export function DashboardInvoicesTable({ invoices }: DashboardInvoicesTableProps
                       {formatDate(inv.due_date)}
                     </td>
                     <td className="py-3 px-4">
-                      <StatusBadge status={inv.display_status || inv.status} />
+                      <StatusBadge
+                        status={inv.display_status || inv.status}
+                        invoiceId={inv.id}
+                        invoiceNumber={inv.number}
+                        interactive
+                        onStatusChange={(newStatus) =>
+                          handleStatusChange(inv.id, newStatus)
+                        }
+                      />
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-slate-100">
                       {formatFBu(inv.total)}

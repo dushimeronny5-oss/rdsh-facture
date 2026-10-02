@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Facture RDSH — Facturation professionnelle Burundi (FBu)",
+  title: "Facture RDSH — Facturation professionnelle (FBu)",
   description:
     "Solution SaaS de facturation pour entrepreneurs africains. Exactitude financière, TVA conforme, règlements Lumicash / Ecocash / IBB et export PDF.",
 };

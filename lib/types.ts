@@ -60,6 +60,7 @@ export interface Invoice {
   display_status?: DisplayInvoiceStatus;
   issue_date: string;
   due_date: string;
+  currency?: string;
   tax_rate: number;
   subtotal: number;
   tax_amount: number;

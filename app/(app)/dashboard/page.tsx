@@ -1,15 +1,16 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  FileText,
   CheckCircle2,
   Clock,
   AlertTriangle,
+  Users,
   Plus,
 } from "lucide-react";
 import { getDashboardStats } from "@/lib/data/dashboard";
 import { getOrganization } from "@/lib/data/organization";
 import { getInvoices } from "@/lib/data/invoices";
+import { getClients } from "@/lib/data/clients";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { DashboardInvoicesTable } from "@/components/dashboard/dashboard-invoices-table";
@@ -20,10 +21,11 @@ import { formatFBu } from "@/lib/format";
 export const revalidate = 0;
 
 export default async function DashboardPage() {
-  const [stats, organization, allInvoices] = await Promise.all([
+  const [stats, organization, allInvoices, clients] = await Promise.all([
     getDashboardStats(),
     getOrganization(),
     getInvoices(),
+    getClients(),
   ]);
 
   return (
@@ -36,7 +38,7 @@ export default async function DashboardPage() {
               Bonjour, {organization.name} 👋
             </h1>
             <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
-              Burundi (BIF)
+              BIF (FBu)
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1 dark:text-slate-400">
@@ -57,16 +59,7 @@ export default async function DashboardPage() {
       {/* 4 Key Stat Cards matching fintech aesthetics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
-          title="Montant Facturé"
-          value={formatFBu(stats.totalBilled)}
-          description="Factures émises validées"
-          icon={FileText}
-          accentColor="blue"
-          trend={{ value: "+18.4% ce mois", positive: true }}
-        />
-
-        <StatCard
-          title="Encaissements Reçus"
+          title="Total encaissé"
           value={formatFBu(stats.totalPaid)}
           description="Règlements encaissés"
           icon={CheckCircle2}
@@ -75,7 +68,7 @@ export default async function DashboardPage() {
         />
 
         <StatCard
-          title="En Attente"
+          title="Facture en attente"
           value={formatFBu(stats.totalPending)}
           description="Factures envoyées en cours"
           icon={Clock}
@@ -83,12 +76,20 @@ export default async function DashboardPage() {
         />
 
         <StatCard
-          title="Factures en Retard"
+          title="En retard"
           value={formatFBu(stats.totalOverdue)}
           description="Échéance dépassée"
           icon={AlertTriangle}
           accentColor="amber"
           trend={{ value: "À relancer", positive: false }}
+        />
+
+        <StatCard
+          title="Total client"
+          value={String(clients.length)}
+          description="Clients enregistrés"
+          icon={Users}
+          accentColor="indigo"
         />
       </div>
 
@@ -120,7 +121,6 @@ export default async function DashboardPage() {
                     <p className="text-xs font-bold text-slate-900 dark:text-white">
                       Lumicash Marchand
                     </p>
-                    <p className="text-[11px] text-slate-400">79 123 456 (RDSH)</p>
                   </div>
                 </div>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
@@ -137,7 +137,6 @@ export default async function DashboardPage() {
                     <p className="text-xs font-bold text-slate-900 dark:text-white">
                       Virement Interbank (IBB)
                     </p>
-                    <p className="text-[11px] text-slate-400">Compte 10024-5892-01</p>
                   </div>
                 </div>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
@@ -154,7 +153,6 @@ export default async function DashboardPage() {
                     <p className="text-xs font-bold text-slate-900 dark:text-white">
                       Ecocash Marchand
                     </p>
-                    <p className="text-[11px] text-slate-400">71 987 654</p>
                   </div>
                 </div>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">

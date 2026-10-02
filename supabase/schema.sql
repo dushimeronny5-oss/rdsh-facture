@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS public.organizations (
     default_payment_terms_days INTEGER DEFAULT 30,
     invoice_prefix TEXT DEFAULT 'FAC',
     next_invoice_number INTEGER DEFAULT 31,
+    payment_instructions TEXT DEFAULT 'Paiement par virement bancaire sur notre compte IBB ou par Lumicash Marchand : 79 123 456.',
+    footer_note TEXT DEFAULT 'Merci pour votre confiance. Facture payable sous 30 jours.',
+    logo_path TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -35,7 +38,9 @@ CREATE TABLE IF NOT EXISTS public.clients (
     phone TEXT,
     address TEXT,
     city TEXT DEFAULT 'Bujumbura',
+    country TEXT DEFAULT 'Burundi',
     nif TEXT,
+    notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -56,6 +61,9 @@ CREATE TABLE IF NOT EXISTS public.invoices (
     total NUMERIC(15,2) NOT NULL DEFAULT 0,
     notes TEXT,
     payment_method TEXT DEFAULT 'Lumicash / Virement',
+    sent_at TIMESTAMPTZ,
+    paid_at TIMESTAMPTZ,
+    cancelled_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

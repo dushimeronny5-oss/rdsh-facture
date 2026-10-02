@@ -34,3 +34,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local agent config & secrets
+.agents/
+lib/mock/.custom_invoices.json
+

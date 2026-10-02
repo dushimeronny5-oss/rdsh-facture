@@ -24,6 +24,7 @@ import {
   MapPin,
   Mail,
   Receipt,
+  Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import { formatCurrency, formatFBu, formatDate } from "@/lib/format";
 import { SUPPORTED_CURRENCIES, getCurrency } from "@/lib/currency";
 import { WheelDatePicker } from "@/components/ui/wheel-date-picker";
 import { toast } from "sonner";
+import { createInvoiceAction } from "@/app/actions/invoices";
 
 interface InvoiceFormProps {
   organization: Organization;
@@ -48,22 +50,30 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
   const [activeTab, setActiveTab] = React.useState<"standard" | "split" | "recurring">("standard");
 
   // Form states
-  const [fullName, setFullName] = React.useState(organization.name);
+  const [fullName, setFullName] = React.useState(
+    organization.name &&
+    organization.name !== "RDSH" &&
+    !organization.name.toLowerCase().includes("dushime")
+      ? organization.name
+      : ""
+  );
 
   // Client / Company custom typing states
-  const initialClient = clients.find((c) => c.id === initialData?.client_id) || clients[0];
+  const initialClient = clients.find((c) => c.id === initialData?.client_id);
   const [clientName, setClientName] = React.useState(
-    initialData?.client_name || initialClient?.name || "Brasseries du Burundi (BRARUDI)"
+    initialData?.client_name || initialClient?.name || ""
   );
   const [clientEmail, setClientEmail] = React.useState(
-    initialData?.client_email || initialClient?.email || "contact@brarudi.bi"
+    initialData?.client_email || initialClient?.email || ""
   );
   const [clientAddress, setClientAddress] = React.useState(
     initialData?.client_address ||
-      `${initialClient?.address || "Boulevard du 1er Novembre"}, ${initialClient?.city || "Bujumbura"}`
+      (initialClient
+        ? `${initialClient.address || ""}${initialClient.address && initialClient.city ? ", " : ""}${initialClient.city || ""}`
+        : "")
   );
   const [clientNif, setClientNif] = React.useState(
-    initialData?.client_nif || initialClient?.nif || "4000000010"
+    initialData?.client_nif || initialClient?.nif || ""
   );
   const [isClientDropdownOpen, setIsClientDropdownOpen] = React.useState(false);
   const [showClientDetails, setShowClientDetails] = React.useState(false);
@@ -83,7 +93,7 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
 
   const [invoiceNumber, setInvoiceNumber] = React.useState(
     initialData?.number ||
-      `${organization.invoice_prefix}-2026-${String(organization.next_invoice_number).padStart(4, "0")}`
+      `${organization.invoice_prefix || "RDSH"}-2026-${String(organization.next_invoice_number || 1).padStart(4, "0")}`
   );
   const [taxRate, setTaxRate] = React.useState<number>(
     initialData?.tax_rate ?? organization.default_tax_rate ?? 15
@@ -92,8 +102,7 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
     initialData?.currency || organization.currency || "BIF"
   );
   const [notes, setNotes] = React.useState(
-    initialData?.notes ||
-      "Règlement exigé sous 30 jours. Mentionner le numéro de facture lors du virement ou paiement mobile."
+    initialData?.notes || ""
   );
 
   // Filtered clients based on query
@@ -168,8 +177,61 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
     );
   };
 
-  // Instant PDF Download / Print Handler
-  const handleDownloadPdf = () => {
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  // Handler to persist invoice to store/database and update dashboard
+  const submitInvoice = async (status: "draft" | "sent") => {
+    if (!clientName.trim()) {
+      toast.error("Veuillez renseigner le nom de l'entreprise cliente.");
+      return null;
+    }
+    if (!items.length || items.every((it) => !it.description.trim())) {
+      toast.error("Veuillez renseigner au moins une ligne de facturation.");
+      return null;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const selectedClient = clients.find(
+        (c) => c.name.toLowerCase() === clientName.toLowerCase()
+      );
+
+      const res = await createInvoiceAction({
+        clientId: selectedClient?.id,
+        clientName: clientName.trim(),
+        clientEmail: clientEmail.trim(),
+        clientAddress: clientAddress.trim(),
+        clientNif: clientNif.trim(),
+        issueDate,
+        dueDate,
+        invoiceNumber,
+        currency,
+        taxRate,
+        notes,
+        status,
+        items: items.map((it) => ({
+          description: it.description || "Prestation de services",
+          quantity: it.quantity || 1,
+          unitPrice: it.unitPrice || 0,
+        })),
+      });
+
+      if (!res.success) {
+        throw new Error(res.error || "Erreur de création");
+      }
+
+      return res.invoice;
+    } catch (err: any) {
+      console.error("Erreur enregistrement facture:", err);
+      toast.error(err?.message || "Erreur lors de l'enregistrement de la facture.");
+      return null;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Instant PDF Download / Print Handler (and auto-save to dashboard)
+  const handleDownloadPdf = async () => {
     const prevTitle = document.title;
     const cleanClient = (clientName || "Client").replace(/[^a-zA-Z0-9_-]/g, "_");
     document.title = `${invoiceNumber || "Facture"}_${cleanClient}.pdf`;
@@ -177,19 +239,35 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
     setTimeout(() => {
       document.title = prevTitle;
     }, 1500);
-    toast.success(
-      `Facture prête pour ${clientName || "le client"} ! Sélectionnez "Enregistrer au format PDF" pour finaliser le téléchargement.`
-    );
+
+    const saved = await submitInvoice("sent");
+    if (saved) {
+      toast.success(
+        `Facture ${invoiceNumber} prête et enregistrée dans le tableau de bord !`
+      );
+    }
   };
 
   const handleSaveDraft = async () => {
-    toast.success("Brouillon de facture enregistré avec succès !");
-    router.push("/invoices");
+    const saved = await submitInvoice("draft");
+    if (saved) {
+      toast.success(
+        `Brouillon ${invoiceNumber} enregistré et ajouté au tableau de bord !`
+      );
+      router.push("/dashboard");
+      router.refresh();
+    }
   };
 
   const handleSendInvoice = async () => {
-    toast.success(`Facture ${invoiceNumber} émise et marquée comme envoyée !`);
-    router.push("/invoices");
+    const saved = await submitInvoice("sent");
+    if (saved) {
+      toast.success(
+        `Facture ${invoiceNumber} émise et ajoutée au tableau de bord !`
+      );
+      router.push("/dashboard");
+      router.refresh();
+    }
   };
 
   return (
@@ -223,6 +301,63 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
                 checked={showPreview}
                 onCheckedChange={(checked) => setShowPreview(checked)}
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Top Centered Action Bar matching user request */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs dark:bg-slate-900 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-sm">
+                FBu
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  Total de la facture
+                </p>
+                <p className="text-base font-extrabold text-slate-900 dark:text-white">
+                  {formatCurrency(calculation.total, currency)}
+                </p>
+              </div>
+            </div>
+
+            {/* Centered Action Buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-2.5 w-full sm:w-auto">
+              <Button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleDownloadPdf}
+                className="h-10 px-5 rounded-xl font-bold text-xs gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+              >
+                <Download className="h-4 w-4" />
+                <span>Télécharger la facture (PDF)</span>
+              </Button>
+
+              <Button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleSendInvoice}
+                className="h-10 px-5 rounded-xl font-bold text-xs gap-2 bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-white" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                <span>Créer & Ajouter</span>
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSubmitting}
+                onClick={handleSaveDraft}
+                className="h-10 px-4 rounded-xl font-semibold text-xs gap-1.5 border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300"
+              >
+                <Save className="h-3.5 w-3.5" />
+                <span>Brouillon</span>
+              </Button>
             </div>
           </div>
         </div>
@@ -486,7 +621,7 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
                 icon={<Hash className="h-4 w-4" />}
                 value={invoiceNumber}
                 onChange={(e) => setInvoiceNumber(e.target.value)}
-                placeholder="Ex. FAC-2026-0001"
+                placeholder="Ex. RDSH-2026-0001"
               />
             </div>
           </div>
@@ -636,35 +771,60 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
             />
           </div>
 
-          {/* Action Buttons matching user request: Download PDF directly */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-3">
-            <Button
-              type="button"
-              onClick={handleDownloadPdf}
-              className="w-full sm:w-auto h-11 px-6 rounded-xl font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20"
-            >
-              <Download className="h-4 w-4" />
-              <span>Télécharger la facture (PDF)</span>
-            </Button>
+          {/* Action Buttons matching user request: Placed in the center, bright, clear and visible */}
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-4">
+            <div className="text-center">
+              <p className="text-sm font-bold text-slate-900 dark:text-white">
+                Actions de facturation
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Téléchargez votre facture ou ajoutez-la directement au tableau de bord.
+              </p>
+            </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleSaveDraft}
-              className="w-full sm:w-auto h-11 px-5 rounded-xl font-semibold gap-2 border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300"
-            >
-              <Save className="h-4 w-4" />
-              <span>Save as Draft</span>
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full">
+              {/* Le bouton vert bien visible au milieu */}
+              <Button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleDownloadPdf}
+                className="w-full sm:w-auto h-12 px-7 rounded-xl font-extrabold text-sm gap-2.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/40 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+              >
+                <Download className="h-5 w-5" />
+                <span>Télécharger la facture (PDF)</span>
+              </Button>
 
-            <Button
-              type="button"
-              onClick={handleSendInvoice}
-              className="w-full sm:w-auto h-11 px-6 rounded-xl font-semibold gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
-            >
-              <Send className="h-4 w-4" />
-              <span>Send Invoice</span>
-            </Button>
+              {/* Bouton bleu Créer & Ajouter */}
+              <Button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleSendInvoice}
+                className="w-full sm:w-auto h-12 px-7 rounded-xl font-extrabold text-sm gap-2.5 bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/40 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-white" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
+                <span>Créer & Ajouter au tableau de bord</span>
+              </Button>
+
+              {/* Bouton brouillon */}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSubmitting}
+                onClick={handleSaveDraft}
+                className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold text-sm gap-2 border-2 border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-slate-600" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                <span>Enregistrer en brouillon</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -673,7 +833,7 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
       {showPreview && (
         <div className="lg:col-span-5 sticky top-6">
           <InvoicePdfPreview
-            organization={organization}
+            organization={{ ...organization, name: fullName }}
             invoiceNumber={invoiceNumber}
             clientName={clientName}
             clientEmail={clientEmail}
@@ -689,6 +849,9 @@ export function InvoiceForm({ organization, clients, initialData }: InvoiceFormP
             currency={currency}
             notes={notes}
             onDownloadPdf={handleDownloadPdf}
+            onOrganizationNameChange={(name) => setFullName(name)}
+            onClientNameChange={(name) => setClientName(name)}
+            onInvoiceNumberChange={(num) => setInvoiceNumber(num)}
           />
         </div>
       )}

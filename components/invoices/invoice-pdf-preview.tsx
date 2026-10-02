@@ -29,6 +29,9 @@ interface InvoicePreviewProps {
   notes?: string;
   paymentMethod?: string;
   onDownloadPdf?: () => void;
+  onOrganizationNameChange?: (name: string) => void;
+  onClientNameChange?: (name: string) => void;
+  onInvoiceNumberChange?: (num: string) => void;
 }
 
 export function InvoicePdfPreview({
@@ -49,7 +52,18 @@ export function InvoicePdfPreview({
   notes,
   paymentMethod = "Lumicash / Virement",
   onDownloadPdf,
+  onOrganizationNameChange,
+  onClientNameChange,
+  onInvoiceNumberChange,
 }: InvoicePreviewProps) {
+  // Avoid displaying personal gmail or account emails on invoices
+  const displayEmail =
+    organization.email &&
+    !organization.email.toLowerCase().includes("dushime") &&
+    !organization.email.toLowerCase().includes("@gmail.com")
+      ? organization.email
+      : null;
+
   const handlePrint = () => {
     const prevTitle = document.title;
     const cleanClient = (clientName || "Client").replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -88,7 +102,7 @@ export function InvoicePdfPreview({
           <Button
             variant="default"
             size="sm"
-            className="h-8 gap-1.5 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
+            className="h-8 gap-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-md shadow-emerald-600/20 transition-all hover:scale-[1.02]"
             onClick={handleDownload}
           >
             <Download className="h-3.5 w-3.5" />
@@ -105,12 +119,25 @@ export function InvoicePdfPreview({
         {/* Header Row */}
         <div className="flex justify-between items-start border-b border-slate-100 pb-6">
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-950 uppercase font-mono">
-              INVOICE
+            <h1 className="text-3xl font-black tracking-tight text-slate-950 uppercase font-mono">
+              RDSH
             </h1>
-            <p className="text-xs font-semibold text-slate-500 mt-1 font-mono">
-              Invoice Number #{invoiceNumber || "FAC-2026-0001"}
-            </p>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mt-1 font-mono">
+              <span>Invoice Number #</span>
+              {onInvoiceNumberChange ? (
+                <input
+                  type="text"
+                  value={invoiceNumber || "RDSH-2026-0001"}
+                  onChange={(e) => onInvoiceNumberChange(e.target.value)}
+                  className="bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded px-1.5 py-0.5 border border-transparent hover:border-slate-200 focus:border-blue-400 outline-none font-mono font-bold text-slate-800 transition-all cursor-text print:p-0 print:border-none print:bg-transparent"
+                  title="Cliquez pour modifier le numéro de facture"
+                />
+              ) : (
+                <span className="font-bold text-slate-800">
+                  {invoiceNumber || "RDSH-2026-0001"}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Logo Emblem matching screenshot */}
@@ -144,30 +171,72 @@ export function InvoicePdfPreview({
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
               Billed by:
             </p>
-            <p className="font-bold text-slate-900 text-sm mt-0.5">
-              {organization.name}
-            </p>
-            <p className="text-slate-500 mt-0.5">{organization.email}</p>
-            <p className="text-slate-500">{organization.address}, {organization.city}</p>
-            <p className="text-slate-500">NIF : {organization.nif} | RC : {organization.rc}</p>
+            {onOrganizationNameChange ? (
+              <div className="relative group mt-0.5">
+                <input
+                  type="text"
+                  value={organization.name || ""}
+                  onChange={(e) => onOrganizationNameChange(e.target.value)}
+                  placeholder="Votre nom ou entreprise"
+                  className="font-bold text-slate-900 text-sm bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded px-1.5 py-0.5 -ml-1.5 border border-transparent hover:border-slate-200 focus:border-blue-400 outline-none w-full transition-all cursor-text print:p-0 print:m-0 print:border-none print:bg-transparent print:font-bold"
+                  title="Cliquez pour modifier le nom de l'entreprise directement sur la facture"
+                />
+              </div>
+            ) : (
+              <p className="font-bold text-slate-900 text-sm mt-0.5">
+                {organization.name || "Nom de l'émetteur"}
+              </p>
+            )}
+            {displayEmail && (
+              <p className="text-slate-500 mt-0.5">{displayEmail}</p>
+            )}
+            {organization.phone && organization.phone.trim() !== "+257" && (
+              <p className="text-slate-500">{organization.phone}</p>
+            )}
+            {organization.address && (
+              <p className="text-slate-500">
+                {organization.address}
+                {organization.city ? `, ${organization.city}` : ""}
+              </p>
+            )}
+            {(organization.nif || organization.rc) && (
+              <p className="text-slate-500">
+                {organization.nif ? `NIF : ${organization.nif}` : ""}
+                {organization.nif && organization.rc ? " | " : ""}
+                {organization.rc ? `RC : ${organization.rc}` : ""}
+              </p>
+            )}
           </div>
 
           <div>
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
               Billed to:
             </p>
-            <p className="font-bold text-slate-900 text-sm mt-0.5">
-              {clientName || "Entreprise cliente"}
-            </p>
-            {clientEmail && (
+            {onClientNameChange ? (
+              <div className="relative group mt-0.5">
+                <input
+                  type="text"
+                  value={clientName}
+                  onChange={(e) => onClientNameChange(e.target.value)}
+                  placeholder="Nom du client"
+                  className="font-bold text-slate-900 text-sm bg-transparent hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded px-1.5 py-0.5 -ml-1.5 border border-transparent hover:border-slate-200 focus:border-blue-400 outline-none w-full transition-all cursor-text print:p-0 print:m-0 print:border-none print:bg-transparent print:font-bold"
+                  title="Cliquez pour modifier le nom du client directement sur la facture"
+                />
+              </div>
+            ) : (
+              <p className="font-bold text-slate-900 text-sm mt-0.5">
+                {clientName || "Nom du client"}
+              </p>
+            )}
+            {clientEmail ? (
               <p className="text-slate-500 mt-0.5">{clientEmail}</p>
-            )}
-            {clientAddress && (
+            ) : null}
+            {clientAddress ? (
               <p className="text-slate-500">{clientAddress}</p>
-            )}
-            {clientNif && (
+            ) : null}
+            {clientNif ? (
               <p className="text-slate-500">NIF : {clientNif}</p>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -244,26 +313,20 @@ export function InvoicePdfPreview({
         </div>
 
         {/* Note Box */}
-        <div className="mt-6 p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-500 leading-relaxed">
-          {notes || "Note: Les paiements en retard sont soumis aux pénalités légales en vigueur."}
-        </div>
-
-        {/* Payment Method & Signature Row */}
-        <div className="mt-6 pt-4 border-t border-slate-100 flex items-end justify-between text-xs">
-          <div className="space-y-0.5">
-            <p className="font-bold text-slate-900">Payment Method</p>
-            <p className="text-slate-500">{paymentMethod}</p>
-            <p className="text-[11px] text-slate-400 font-mono">
-              Lumicash : 79 123 456 | IBB : 10024-5892-01
-            </p>
+        {notes ? (
+          <div className="mt-6 p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-500 leading-relaxed">
+            {notes}
           </div>
+        ) : null}
 
-          <div className="text-right">
-            <div className="font-serif italic text-lg text-slate-800 tracking-wider">
-              ~ RDSH Solutions ~
-            </div>
-            <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase">
-              Signature autorisée
+        {/* Footer Row */}
+        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+          <div className="space-y-0.5">
+            <span className="font-extrabold text-base tracking-wider text-slate-900 font-mono select-none">
+              RDSH
+            </span>
+            <p className="text-[10px] text-slate-400 font-medium">
+              Système de Facturation
             </p>
           </div>
         </div>

@@ -10,6 +10,8 @@ import { Save, Building2, CreditCard, Check, Coins } from "lucide-react";
 import { SUPPORTED_CURRENCIES, getCurrency } from "@/lib/currency";
 import { toast } from "sonner";
 
+import { updateOrganizationAction } from "@/app/actions/organization";
+
 interface SettingsFormProps {
   organization: Organization;
 }
@@ -31,7 +33,7 @@ export function SettingsForm({ organization }: SettingsFormProps) {
     organization.default_tax_rate ?? 15
   );
   const [invoicePrefix, setInvoicePrefix] = React.useState(
-    organization.invoice_prefix || "FAC"
+    organization.invoice_prefix || "RDSH"
   );
   const [paymentInstructions, setPaymentInstructions] = React.useState(
     organization.payment_instructions
@@ -39,16 +41,37 @@ export function SettingsForm({ organization }: SettingsFormProps) {
 
   const [isSaving, setIsSaving] = React.useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    // In our mock layer this is saved and updated
-    setTimeout(() => {
+    try {
+      const res = await updateOrganizationAction({
+        name,
+        email,
+        nif,
+        rc,
+        phone,
+        city,
+        country,
+        currency,
+        default_tax_rate: defaultTaxRate,
+        invoice_prefix: invoicePrefix,
+        payment_instructions: paymentInstructions,
+      });
+
+      if (res.success) {
+        const selectedCurrencyObj = getCurrency(currency);
+        toast.success(
+          `Paramètres enregistrés dans Supabase ! Devise active : ${selectedCurrencyObj.name}`
+        );
+        router.refresh();
+      } else {
+        toast.error(res.error || "Erreur d'enregistrement");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Erreur réseau lors de la sauvegarde");
+    } finally {
       setIsSaving(false);
-      const selectedCurrencyObj = getCurrency(currency);
-      toast.success(
-        `Paramètres enregistrés ! Devise active : ${selectedCurrencyObj.name}`
-      );
-    }, 400);
+    }
   };
 
   return (
@@ -59,7 +82,7 @@ export function SettingsForm({ organization }: SettingsFormProps) {
           <div className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-blue-600" />
             <CardTitle className="text-base font-bold text-slate-900 dark:text-white">
-              Identité légale (Burundi)
+              Identité légale
             </CardTitle>
           </div>
           <CardDescription className="text-xs text-slate-500">

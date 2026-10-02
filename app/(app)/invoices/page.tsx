@@ -106,7 +106,7 @@ export default async function InvoicesListPage({
                   <th className="py-3.5 px-4">Date d'émission</th>
                   <th className="py-3.5 px-4">Échéance</th>
                   <th className="py-3.5 px-4">Statut</th>
-                  <th className="py-3.5 px-4 text-right">Montant TTC</th>
+                  <th className="py-3.5 px-4 text-right">Montant</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -134,7 +134,12 @@ export default async function InvoicesListPage({
                       {formatDate(inv.due_date)}
                     </td>
                     <td className="py-4 px-4">
-                      <StatusBadge status={inv.display_status || inv.status} />
+                      <StatusBadge
+                        status={inv.display_status || inv.status}
+                        invoiceId={inv.id}
+                        invoiceNumber={inv.number}
+                        interactive
+                      />
                     </td>
                     <td className="py-4 px-4 text-right font-bold text-slate-900 text-sm dark:text-slate-100">
                       {formatFBu(inv.total)}

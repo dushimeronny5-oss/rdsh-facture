@@ -12,7 +12,7 @@ interface StatCardProps {
     value: string;
     positive: boolean;
   };
-  accentColor?: "blue" | "emerald" | "amber" | "rose";
+  accentColor?: "blue" | "emerald" | "amber" | "rose" | "indigo";
 }
 
 export function StatCard({
@@ -43,6 +43,11 @@ export function StatCard({
       bg: "bg-rose-50 dark:bg-rose-950/50",
       text: "text-rose-600 dark:text-rose-400",
       border: "border-rose-100 dark:border-rose-900/50",
+    },
+    indigo: {
+      bg: "bg-indigo-50 dark:bg-indigo-950/50",
+      text: "text-indigo-600 dark:text-indigo-400",
+      border: "border-indigo-100 dark:border-indigo-900/50",
     },
   };
 
