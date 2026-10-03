@@ -74,6 +74,21 @@
 - Attributs ARIA complets : `role="dialog"`, `aria-label`, `aria-expanded`, gestion du focus.
 - Support du Dark Mode avec bascule instantanée.
 
+### G. Landing Page d'Accueil & Vitrine SaaS (`/`)
+- Point d'entrée public de l'application accessible sans redirection forcée vers `/login`.
+- Architecture modulaire complète dans `components/landing/` :
+  - `LandingNavbar` : Barre de navigation sticky avec flou d'arrière-plan, logo avec badge "Afrique", liens d'ancrage et menu drawer mobile responsive.
+  - `LandingHero` : En-tête percutant avec micro-animations flottantes (`animate-float-slow`, `animate-pulse-glow`), CTA principal animé au survol et au clic, preuve sociale multi-villes et maquette dynamique de facture SaaS avec widget de trésorerie mensuelle.
+  - `LandingStats` : 3 métriques clés de conversion (15 000+ factures, conformité TVA, paiements 3x plus rapides).
+  - `LandingProblems` : 3 cartes de friction (factures artisanales, erreurs de TVA, retards de paiement).
+  - `LandingFeatures` : 4 cartes de fonctionnalités fintech (multi-devises FCFA, BIF, $, €, CAD, conformité fiscale, suivi temps réel, annuaire clients).
+  - `LandingHowItWorks` : Parcours d'onboarding en 3 étapes claires (inscription, création facture, encaissement).
+  - `LandingTestimonials` : Témoignages vérifiés d'entrepreneurs africains avec notation 5 étoiles.
+  - `LandingPricing` : Sélecteur réactif multi-devises avec bascule facturation annuelle (-20%) et formules Gratuit / Pro ⭐ / Business.
+  - `LandingCta` : Bannière de conversion finale avec halo lumineux et badges de réassurance (support 7j/7, conformité légale).
+  - `LandingFooter` : Pied de page complet avec liens, réseaux et mention "Fait avec fierté en Afrique 🌍".
+- Fichier de style dédié sans styles inline : [`app/landing.css`](file:///c:/Users/User/Downloads/facture%20RDSH/app/landing.css).
+
 ---
 
 ## 3. 🛠️ Stack Technique & Dépendances
