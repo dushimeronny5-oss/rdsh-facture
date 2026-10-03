@@ -60,8 +60,10 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Not logged in -> redirect to login
-  if (!user && !isAuthRoute) {
+  const isLandingRoute = pathname === "/";
+
+  // Not logged in -> redirect to login (protected app routes)
+  if (!user && !isAuthRoute && !isLandingRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

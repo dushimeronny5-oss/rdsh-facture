@@ -64,6 +64,18 @@ const config: Config = {
           blue: "#2563eb",
           dark: "#0f172a",
         },
+        // Landing Page Dark & Neon Accent Palette
+        dark: {
+          950: "#070913",
+          900: "#0b0d19",
+          850: "#0f1226",
+          800: "#141833",
+          700: "#1e2447",
+        },
+        "accent-purple": "#7c3aed",
+        "accent-violet": "#8b5cf6",
+        "accent-glow": "#a855f7",
+        "accent-light": "#f3e8ff",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -75,6 +87,8 @@ const config: Config = {
         card: "0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.04)",
         invoice: "0 20px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04)",
         floating: "0 25px 50px -12px rgba(15, 23, 42, 0.12)",
+        "glow-purple": "0 0 45px -8px rgba(139, 92, 246, 0.45)",
+        "glow-card": "0 20px 50px -10px rgba(11, 13, 25, 0.3)",
       },
       keyframes: {
         "accordion-down": {
